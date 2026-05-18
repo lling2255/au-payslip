@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🇦🇺 打工度假薪資追蹤</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+    font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    padding: 1.5rem 1rem 3rem;
+    color: #f1f5f9;
+  }
+
+  .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+
+  /* Header */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: rgba(255,255,255,0.07);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+  }
+  .flag-row { display: flex; align-items: center; gap: 0.75rem; }
+  .flag { font-size: 2.5rem; }
+  .title { font-size: 1.4rem; font-weight: bold; letter-spacing: 0.02em; }
+  .subtitle { color: #94a3b8; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+  .notion-badge {
+    display: flex; align-items: center; gap: 0.4rem;
+    background: rgba(0,0,0,0.3); padding: 0.4rem 0.85rem;
+    border-radius: 20px; color: #a3e635; font-size: 0.78rem;
+    border: 1px solid rgba(163,230,53,0.3);
+  }
+  .notion-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #a3e635; box-shadow: 0 0 6px #a3e635;
+    display: inline-block;
+  }
+
+  /* Card */
+  .card {
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+  }
+  .card-title { color: #e2e8f0; font-size: 1rem; font-weight: bold; margin-bottom: 1.25rem; }
+
+  /* Form */
+  .form-grid { display: flex; flex-direction: column; gap: 1rem; }
+  .field { display: flex; flex-direction: column; gap: 0.4rem; }
+  label { color: #94a3b8; font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  .input-wrap { position: relative; }
+  .currency {
+    position: absolute; left: 0.7rem; top: 50%;
+    transform: translateY(-50%); color: #64748b; font-size: 0.95rem;
+    pointer-events: none;
+  }
+  input[type="text"], input[type="number"], input[type="date"] {
+    width: 100%; padding: 0.7rem 0.9rem;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px; color: #f1f5f9; font-size: 1rem;
+    outline: none; -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus {
+    border-color: rgba(99,102,241,0.6);
+  }
+  input.with-currency { padding-left: 1.9rem; }
+  input::placeholder { color: #475569; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+
+  /* Toggle */
+  .toggle-wrap {
+    display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+    padding: 0.75rem 1rem;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
+    transition: background 0.3s;
+    user-select: none; -webkit-user-select: none;
+  }
+  .toggle-track {
+    width: 48px; height: 26px; border-radius: 13px;
+    position: relative; transition: background 0.3s; flex-shrink: 0;
+  }
+  .toggle-thumb {
+    position: absolute; top: 3px; width: 20px; height: 20px;
+    border-radius: 50%; background: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: left 0.3s;
+  }
+  .toggle-label { font-size: 0.95rem; font-weight: 600; }
+
+  /* Button */
+  .btn {
+    margin-top: 1.25rem; width: 100%; padding: 0.9rem;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white; border: none; border-radius: 12px;
+    font-size: 1rem; font-weight: bold; cursor: pointer;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    -webkit-appearance: none;
+  }
+  .btn:active { opacity: 0.8; transform: scale(0.99); }
+  .btn:disabled { opacity: 0.6; }
+
+  /* Alerts */
+  .alert { margin-top: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.88rem; display: none; }
+  .alert.show { display: block; }
+  .alert-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .alert-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+
+  /* Summary */
+  .summary-row { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+  .summary-box {
+    flex: 1; background: rgba(255,255,255,0.07);
+    border-radius: 10px; padding: 0.75rem;
+    text-align: center; border: 1px solid rgba(255,255,255,0.08);
+  }
+  .summary-label { color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .summary-val { font-size: 1.1rem; font-weight: bold; margin-top: 0.25rem; }
+  .val-green { color: #a3e635; }
+  .val-red { color: #f87171; }
+  .val-blue { color: #60a5fa; }
+
+  /* Records */
+  .record-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .record-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
+  }
+  .record-company { color: #e2e8f0; font-weight: bold; font-size: 0.95rem; }
+  .record-date { color: #64748b; font-size: 0.78rem; margin-top: 2px; }
+  .record-right { display: flex; align-items: center; gap: 0.5rem; }
+  .record-pay { color: #a3e635; font-weight: bold; font-size: 1rem; }
+  .badge {
+    font-size: 0.7rem; font-weight: bold;
+    padding: 0.2rem 0.5rem; border-radius: 6px;
+  }
+  .badge-yes { background: #d1fae5; color: #065f46; }
+  .badge-no { background: #fee2e2; color: #991b1b; }
+
+  .footer { text-align: center; color: #334155; font-size: 0.75rem; padding-top: 0.5rem; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="flag-row">
+      <span class="flag">🇦🇺</span>
+      <div>
+        <div class="title">Working Holiday</div>
+        <div class="subtitle">Payslip Tracker</div>
+      </div>
+    </div>
+    <div class="notion-badge">
+      <span class="notion-dot"></span>
+      Notion 連動中
+    </div>
+  </div>
+
+  <!-- Form Card -->
+  <div class="card">
+    <div class="card-title">📋 新增薪資紀錄</div>
+    <div class="form-grid">
+
+      <div class="field">
+        <label>公司名稱 *</label>
+        <input type="text" id="company" placeholder="e.g. Woolworths">
+      </div>
+
+      <div class="field">
+        <label>薪資週期（起始日）*</label>
+        <input type="date" id="weekStart">
+      </div>
+
+      <div class="field">
+        <label>週薪 (AUD) *</label>
+        <div class="input-wrap">
+          <span class="currency">$</span>
+          <input type="number" id="weeklyPay" class="with-currency" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Tax 扣稅 (AUD)</label>
+        <div class="input-wrap">
+          <span class="currency">$</span>
+          <input type="number" id="tax" class="with-currency" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Super 退休金 (AUD)</label>
+        <div class="input-wrap">
+          <span class="currency">$</span>
+          <input type="number" id="superAmt" class="with-currency" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Super 是否已入帳？</label>
+        <div class="toggle-wrap" id="toggleWrap" onclick="toggleSuper()">
+          <div class="toggle-track" id="toggleTrack" style="background:#ef4444;">
+            <div class="toggle-thumb" id="toggleThumb" style="left:3px;"></div>
+          </div>
+          <span class="toggle-label" id="toggleLabel" style="color:#991b1b;">❌ 未入帳</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="alert alert-error" id="alertError"></div>
+    <div class="alert alert-success" id="alertSuccess"></div>
+
+    <button class="btn" id="submitBtn" onclick="submitForm()">➕ 新增到 Notion</button>
+  </div>
+
+  <!-- Records Card -->
+  <div class="card hidden" id="recordsCard">
+    <div class="card-title">📊 已記錄（<span id="recordCount">0</span> 筆）</div>
+
+    <div class="summary-row">
+      <div class="summary-box">
+        <div class="summary-label">總週薪</div>
+        <div class="summary-val val-green" id="totalPay">$0.00</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">總 Tax</div>
+        <div class="summary-val val-red" id="totalTax">$0.00</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">總 Super</div>
+        <div class="summary-val val-blue" id="totalSuper">$0.00</div>
+      </div>
+    </div>
+
+    <div class="record-list" id="recordList"></div>
+  </div>
+
+  <div class="footer">打工度假薪資追蹤器 · 資料同步至 Notion</div>
+</div>
+
+<script>
+const NOTION_TOKEN = "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";
+const DATABASE_ID = "364cd9107eac807d954cc44ddd579f56";
+
+let superReceived = false;
+let records = [];
+
+function toggleSuper() {
+  superReceived = !superReceived;
+  const track = document.getElementById('toggleTrack');
+  const thumb = document.getElementById('toggleThumb');
+  const label = document.getElementById('toggleLabel');
+  const wrap = document.getElementById('toggleWrap');
+
+  if (superReceived) {
+    track.style.background = '#10b981';
+    thumb.style.left = '25px';
+    label.textContent = '✅ 已入帳';
+    label.style.color = '#065f46';
+    wrap.style.background = 'rgba(16,185,129,0.1)';
+  } else {
+    track.style.background = '#ef4444';
+    thumb.style.left = '3px';
+    label.textContent = '❌ 未入帳';
+    label.style.color = '#991b1b';
+    wrap.style.background = 'transparent';
+  }
+}
+
+function showAlert(type, msg) {
+  const el = document.getElementById(type === 'error' ? 'alertError' : 'alertSuccess');
+  const other = document.getElementById(type === 'error' ? 'alertSuccess' : 'alertError');
+  other.classList.remove('show');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (type === 'success') setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function submitForm() {
+  const company = document.getElementById('company').value.trim();
+  const weekStart = document.getElementById('weekStart').value;
+  const weeklyPay = parseFloat(document.getElementById('weeklyPay').value) || 0;
+  const tax = parseFloat(document.getElementById('tax').value) || 0;
+  const superAmt = parseFloat(document.getElementById('superAmt').value) || 0;
+
+  if (!company || !weekStart || !weeklyPay) {
+    showAlert('error', '⚠️ 請填寫公司名稱、薪資週期及週薪！');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 送出中...';
+
+  const payload = {
+    parent: { database_id: DATABASE_ID },
+    properties: {
+      "COMPANY": { title: [{ text: { content: company } }] },
+      "DATE": { date: { start: weekStart } },
+      "PAYLIST": { number: weeklyPay },
+      "TAX": { number: tax },
+      "SUPER": { number: superAmt },
+      "SUPER CHECK": { checkbox: superReceived }
+    }
+  };
+
+  try {
+    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${NOTION_TOKEN}`,
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      records.unshift({ company, weekStart, weeklyPay, tax, superAmt, superReceived });
+      updateRecords();
+      clearForm();
+      showAlert('success', '✅ 已成功寫入 Notion！');
+    } else {
+      const err = await res.json();
+      showAlert('error', '❌ 錯誤：' + (err.message || '請確認 Notion 資料庫欄位設定'));
+    }
+  } catch (e) {
+    showAlert('error', '❌ 網路錯誤：' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '➕ 新增到 Notion';
+}
+
+function clearForm() {
+  document.getElementById('company').value = '';
+  document.getElementById('weekStart').value = '';
+  document.getElementById('weeklyPay').value = '';
+  document.getElementById('tax').value = '';
+  document.getElementById('superAmt').value = '';
+  superReceived = false;
+  const track = document.getElementById('toggleTrack');
+  const thumb = document.getElementById('toggleThumb');
+  const label = document.getElementById('toggleLabel');
+  track.style.background = '#ef4444';
+  thumb.style.left = '3px';
+  label.textContent = '❌ 未入帳';
+  label.style.color = '#991b1b';
+  document.getElementById('toggleWrap').style.background = 'transparent';
+}
+
+function updateRecords() {
+  const card = document.getElementById('recordsCard');
+  card.classList.remove('hidden');
+  document.getElementById('recordCount').textContent = records.length;
+
+  const totalPay = records.reduce((s, r) => s + r.weeklyPay, 0);
+  const totalTax = records.reduce((s, r) => s + r.tax, 0);
+  const totalSuper = records.reduce((s, r) => s + r.superAmt, 0);
+
+  document.getElementById('totalPay').textContent = '$' + totalPay.toFixed(2);
+  document.getElementById('totalTax').textContent = '$' + totalTax.toFixed(2);
+  document.getElementById('totalSuper').textContent = '$' + totalSuper.toFixed(2);
+
+  const list = document.getElementById('recordList');
+  list.innerHTML = records.map(r => `
+    <div class="record-item">
+      <div>
+        <div class="record-company">${r.company}</div>
+        <div class="record-date">${r.weekStart}</div>
+      </div>
+      <div class="record-right">
+        <span class="record-pay">$${r.weeklyPay.toFixed(2)}</span>
+        <span class="badge ${r.superReceived ? 'badge-yes' : 'badge-no'}">
+          ${r.superReceived ? 'Super ✓' : 'Super ✗'}
+        </span>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
