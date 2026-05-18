@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🇦🇺 打工度假薪資追蹤</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+    font-family: -apple-system, 'Helvetica Neue', sans-serif;
+    padding: 1.5rem 1rem 3rem;
+    color: #f1f5f9;
+  }
+  .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: rgba(255,255,255,0.07);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .flag-row { display: flex; align-items: center; gap: 0.75rem; }
+  .flag { font-size: 2.5rem; }
+  .title { font-size: 1.4rem; font-weight: bold; }
+  .subtitle { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+  .status-badge {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.4rem 0.85rem; border-radius: 20px; font-size: 0.78rem; cursor: pointer;
+  }
+  .status-badge.on { background: rgba(0,0,0,0.3); color: #a3e635; border: 1px solid rgba(163,230,53,0.3); }
+  .status-badge.off { background: rgba(0,0,0,0.3); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot.green { background: #a3e635; box-shadow: 0 0 6px #a3e635; }
+  .dot.red { background: #f87171; box-shadow: 0 0 6px #f87171; }
+  .card {
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+    padding: 1.5rem;
+  }
+  .card-title { color: #e2e8f0; font-size: 1rem; font-weight: bold; margin-bottom: 1rem; }
+  .hint { color: #64748b; font-size: 0.85rem; line-height: 1.6; margin-bottom: 1rem; }
+  .hint a { color: #60a5fa; }
+  .form-grid { display: flex; flex-direction: column; gap: 1rem; }
+  .field { display: flex; flex-direction: column; gap: 0.4rem; }
+  label { color: #94a3b8; font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  .input-wrap { position: relative; }
+  .currency { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; }
+  input[type="text"], input[type="number"], input[type="date"], input[type="password"] {
+    width: 100%; padding: 0.7rem 0.9rem;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px; color: #f1f5f9; font-size: 1rem;
+    outline: none; -webkit-appearance: none;
+  }
+  input:focus { border-color: rgba(99,102,241,0.6); }
+  input.with-currency { padding-left: 1.9rem; }
+  input::placeholder { color: #475569; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+  .toggle-wrap {
+    display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    user-select: none; -webkit-user-select: none; transition: background 0.3s;
+  }
+  .toggle-track { width: 48px; height: 26px; border-radius: 13px; position: relative; transition: background 0.3s; flex-shrink: 0; }
+  .toggle-thumb { position: absolute; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: left 0.3s; }
+  .toggle-label { font-size: 0.95rem; font-weight: 600; }
+  .btn {
+    margin-top: 1.25rem; width: 100%; padding: 0.9rem;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white; border: none; border-radius: 12px;
+    font-size: 1rem; font-weight: bold; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.4); -webkit-appearance: none;
+  }
+  .btn:active { opacity: 0.8; }
+  .btn:disabled { opacity: 0.6; }
+  .btn-sm {
+    padding: 0.7rem 1.2rem; background: rgba(99,102,241,0.3);
+    color: #e2e8f0; border: 1px solid rgba(99,102,241,0.4);
+    border-radius: 10px; font-size: 0.9rem; cursor: pointer; -webkit-appearance: none;
+    white-space: nowrap;
+  }
+  .alert { margin-top: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.88rem; display: none; }
+  .alert.show { display: block; }
+  .alert-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .alert-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+  .summary-row { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+  .summary-box { flex: 1; background: rgba(255,255,255,0.07); border-radius: 10px; padding: 0.75rem; text-align: center; border: 1px solid rgba(255,255,255,0.08); }
+  .summary-label { color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .summary-val { font-size: 1.1rem; font-weight: bold; margin-top: 0.25rem; }
+  .record-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .record-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); }
+  .record-company { color: #e2e8f0; font-weight: bold; font-size: 0.95rem; }
+  .record-date { color: #64748b; font-size: 0.78rem; margin-top: 2px; }
+  .record-right { display: flex; align-items: center; gap: 0.5rem; }
+  .record-pay { color: #a3e635; font-weight: bold; }
+  .rbadge { font-size: 0.7rem; font-weight: bold; padding: 0.2rem 0.5rem; border-radius: 6px; }
+  .rbadge-yes { background: #d1fae5; color: #065f46; }
+  .rbadge-no { background: #fee2e2; color: #991b1b; }
+  .hidden { display: none; }
+  .footer { text-align: center; color: #334155; font-size: 0.75rem; }
+  .token-row { display: flex; gap: 0.75rem; align-items: flex-end; }
+  .token-row .field { flex: 1; margin-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="flag-row">
+      <span class="flag">🇦🇺</span>
+      <div>
+        <div class="title">Working Holiday</div>
+        <div class="subtitle">Payslip Tracker</div>
+      </div>
+    </div>
+    <div class="status-badge off" id="statusBadge" onclick="showSetup()">
+      <span class="dot red" id="statusDot"></span>
+      <span id="statusText">未連接</span>
+    </div>
+  </div>
+
+  <!-- Setup -->
+  <div class="card" id="setupCard">
+    <div class="card-title">🔑 連接 Notion</div>
+    <div class="hint">
+      輸入你的 Notion Token 即可開始使用。<br>
+      Token 只存在瀏覽器記憶體，不會儲存在任何地方。
+    </div>
+    <div class="token-row">
+      <div class="field">
+        <label>Notion Token</label>
+        <input type="password" id="tokenInput" placeholder="ntn_xxxxxxxxxxxx">
+      </div>
+      <button class="btn-sm" onclick="saveToken()">連接</button>
+    </div>
+    <div class="alert alert-error" id="tokenAlert"></div>
+  </div>
+
+  <!-- Form -->
+  <div class="card hidden" id="formCard">
+    <div class="card-title">📋 新增薪資紀錄</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>公司名稱 *</label>
+        <input type="text" id="company" placeholder="e.g. Woolworths">
+      </div>
+      <div class="field">
+        <label>薪資週期（起始日）*</label>
+        <input type="date" id="weekStart">
+      </div>
+      <div class="field">
+        <label>週薪 (AUD) *</label>
+        <div class="input-wrap">
+          <span class="currency">$</span>
+          <input type="number" id="weeklyPay" class="with-currency" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>TAX 扣稅 (AUD)</label>
+        <div class="input-wrap">
+          <span class="currency">$</span>
+          <input type="number" id="tax" class="with-currency" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>SUPER 退休金 (AUD)</label>
+        <div class="input-wrap">
+          <span class="currency">$</span>
+          <input type="number" id="superAmt" class="with-currency" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>SUPER 是否已入帳？</label>
+        <div class="toggle-wrap" id="toggleWrap" onclick="toggleSuper()">
+          <div class="toggle-track" id="toggleTrack" style="background:#ef4444;">
+            <div class="toggle-thumb" id="toggleThumb" style="left:3px;"></div>
+          </div>
+          <span class="toggle-label" id="toggleLabel" style="color:#991b1b;">❌ 未入帳</span>
+        </div>
+      </div>
+    </div>
+    <div class="alert alert-error" id="alertError"></div>
+    <div class="alert alert-success" id="alertSuccess"></div>
+    <button class="btn" id="submitBtn" onclick="submitForm()">➕ 新增到 Notion</button>
+  </div>
+
+  <!-- Records -->
+  <div class="card hidden" id="recordsCard">
+    <div class="card-title">📊 已記錄（<span id="recordCount">0</span> 筆）</div>
+    <div class="summary-row">
+      <div class="summary-box">
+        <div class="summary-label">總週薪</div>
+        <div class="summary-val" id="totalPay" style="color:#a3e635;">$0.00</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">總 TAX</div>
+        <div class="summary-val" id="totalTax" style="color:#f87171;">$0.00</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-label">總 SUPER</div>
+        <div class="summary-val" id="totalSuper" style="color:#60a5fa;">$0.00</div>
+      </div>
+    </div>
+    <div class="record-list" id="recordList"></div>
+  </div>
+
+  <div class="footer">打工度假薪資追蹤器 · 資料同步至 Notion</div>
+</div>
+
+<script>
+const DATABASE_ID = "364cd9107eac80b1ac2eeb8084e976e5";
+let notionToken = "";
+let superReceived = false;
+let records = [];
+
+function showSetup() {
+  document.getElementById('setupCard').classList.remove('hidden');
+}
+
+function saveToken() {
+  const token = document.getElementById('tokenInput').value.trim();
+  if (!token) { showTokenAlert('請輸入 Token'); return; }
+  setConnected(token);
+}
+
+function setConnected(token) {
+  notionToken = token;
+  document.getElementById('setupCard').classList.add('hidden');
+  document.getElementById('formCard').classList.remove('hidden');
+  document.getElementById('statusBadge').className = 'status-badge on';
+  document.getElementById('statusDot').className = 'dot green';
+  document.getElementById('statusText').textContent = 'Notion 已連接';
+}
+
+function showTokenAlert(msg) {
+  const el = document.getElementById('tokenAlert');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function toggleSuper() {
+  superReceived = !superReceived;
+  const track = document.getElementById('toggleTrack');
+  const thumb = document.getElementById('toggleThumb');
+  const label = document.getElementById('toggleLabel');
+  const wrap = document.getElementById('toggleWrap');
+  if (superReceived) {
+    track.style.background = '#10b981'; thumb.style.left = '25px';
+    label.textContent = '✅ 已入帳'; label.style.color = '#065f46';
+    wrap.style.background = 'rgba(16,185,129,0.1)';
+  } else {
+    track.style.background = '#ef4444'; thumb.style.left = '3px';
+    label.textContent = '❌ 未入帳'; label.style.color = '#991b1b';
+    wrap.style.background = 'transparent';
+  }
+}
+
+function showAlert(type, msg) {
+  const el = document.getElementById(type === 'error' ? 'alertError' : 'alertSuccess');
+  const other = document.getElementById(type === 'error' ? 'alertSuccess' : 'alertError');
+  other.classList.remove('show');
+  el.textContent = msg; el.classList.add('show');
+  if (type === 'success') setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function submitForm() {
+  const company = document.getElementById('company').value.trim();
+  const weekStart = document.getElementById('weekStart').value;
+  const weeklyPay = parseFloat(document.getElementById('weeklyPay').value) || 0;
+  const tax = parseFloat(document.getElementById('tax').value) || 0;
+  const superAmt = parseFloat(document.getElementById('superAmt').value) || 0;
+
+  if (!company || !weekStart || !weeklyPay) {
+    showAlert('error', '⚠️ 請填寫公司名稱、薪資週期及週薪！'); return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = '⏳ 送出中...';
+
+  const payload = {
+    parent: { database_id: DATABASE_ID },
+    properties: {
+      "COMPANY": { title: [{ text: { content: company } }] },
+      "DATE": { date: { start: weekStart } },
+      "PAYLIST": { number: weeklyPay },
+      "TAX": { number: tax },
+      "SUPER": { number: superAmt },
+      "SUPER CHECK": { checkbox: superReceived }
+    }
+  };
+
+  try {
+    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent("https://api.notion.com/v1/pages");
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${notionToken}`,
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      records.unshift({ company, weekStart, weeklyPay, tax, superAmt, superReceived });
+      updateRecords(); clearForm();
+      showAlert('success', '✅ 已成功寫入 Notion！');
+    } else {
+      const err = await res.json();
+      showAlert('error', '❌ ' + (err.message || '請確認欄位名稱是否正確'));
+    }
+  } catch(e) {
+    showAlert('error', '❌ 網路錯誤：' + e.message);
+  }
+
+  btn.disabled = false; btn.textContent = '➕ 新增到 Notion';
+}
+
+function clearForm() {
+  document.getElementById('company').value = '';
+  document.getElementById('weekStart').value = '';
+  document.getElementById('weeklyPay').value = '';
+  document.getElementById('tax').value = '';
+  document.getElementById('superAmt').value = '';
+  superReceived = false;
+  document.getElementById('toggleTrack').style.background = '#ef4444';
+  document.getElementById('toggleThumb').style.left = '3px';
+  document.getElementById('toggleLabel').textContent = '❌ 未入帳';
+  document.getElementById('toggleLabel').style.color = '#991b1b';
+  document.getElementById('toggleWrap').style.background = 'transparent';
+}
+
+function updateRecords() {
+  document.getElementById('recordsCard').classList.remove('hidden');
+  document.getElementById('recordCount').textContent = records.length;
+  document.getElementById('totalPay').textContent = '$' + records.reduce((s,r) => s+r.weeklyPay, 0).toFixed(2);
+  document.getElementById('totalTax').textContent = '$' + records.reduce((s,r) => s+r.tax, 0).toFixed(2);
+  document.getElementById('totalSuper').textContent = '$' + records.reduce((s,r) => s+r.superAmt, 0).toFixed(2);
+  document.getElementById('recordList').innerHTML = records.map(r => `
+    <div class="record-item">
+      <div>
+        <div class="record-company">${r.company}</div>
+        <div class="record-date">${r.weekStart}</div>
+      </div>
+      <div class="record-right">
+        <span class="record-pay">$${r.weeklyPay.toFixed(2)}</span>
+        <span class="rbadge ${r.superReceived ? 'rbadge-yes' : 'rbadge-no'}">${r.superReceived ? 'Super ✓' : 'Super ✗'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+</body>
+</html>
